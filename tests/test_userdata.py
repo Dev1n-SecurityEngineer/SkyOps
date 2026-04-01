@@ -35,11 +35,31 @@ class TestRenderUserData:
         assert "ssh-ed25519" in result
         assert "#!/bin/bash" in result
 
+    def test_contains_zsh_and_docker(self, pub_key_file: Path):
+        result = render_user_data(username="alice", ssh_key_paths=[str(pub_key_file)])
+        assert "zsh" in result
+        assert "docker" in result
+        assert "ufw" in result
+
+    def test_tailscale_disabled_by_default(self, pub_key_file: Path):
+        result = render_user_data(username="alice", ssh_key_paths=[str(pub_key_file)])
+        assert "tailscale" not in result
+
+    def test_tailscale_enabled(self, pub_key_file: Path):
+        result = render_user_data(
+            username="alice",
+            ssh_key_paths=[str(pub_key_file)],
+            tailscale_enabled=True,
+        )
+        assert "tailscale" in result
+
     def test_custom_template(self, pub_key_file: Path, tmp_path: Path):
         template_dir = tmp_path / "templates"
         template_dir.mkdir()
         custom = template_dir / "custom.sh"
-        custom.write_text("#!/bin/bash\n# user: {{ username }}\n{% for k in ssh_keys %}{{ k }}\n{% endfor %}")
+        custom.write_text(
+            "#!/bin/bash\n# user: {{ username }}\n{% for k in ssh_keys %}{{ k }}\n{% endfor %}"
+        )
         result = render_user_data(
             username="bob",
             ssh_key_paths=[str(pub_key_file)],

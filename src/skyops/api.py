@@ -385,6 +385,17 @@ class EC2API:
         except (BotoCoreError, ClientError) as e:
             raise EC2APIError(f"Failed to describe subnets for VPC {vpc_id}: {e}")
 
+    def get_supported_azs(self, instance_type: str) -> set[str]:
+        """Return the set of AZ names that support the given instance type."""
+        try:
+            resp = self._ec2.describe_instance_type_offerings(
+                LocationType="availability-zone",
+                Filters=[{"Name": "instance-type", "Values": [instance_type]}],
+            )
+            return {o["Location"] for o in resp.get("InstanceTypeOfferings", [])}
+        except (BotoCoreError, ClientError) as e:
+            raise EC2APIError(f"Failed to describe instance type offerings: {e}")
+
     def get_or_create_security_group(self, vpc_id: str) -> str:
         """Return existing skyops-default SG ID or create it.
 
@@ -408,7 +419,7 @@ class EC2API:
         try:
             resp = self._ec2.create_security_group(
                 GroupName=sg_name,
-                Description="skyops managed security group — SSH ingress",
+                Description="skyops managed security group - SSH ingress",
                 VpcId=vpc_id,
                 TagSpecifications=[
                     {

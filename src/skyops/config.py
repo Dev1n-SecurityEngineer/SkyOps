@@ -51,6 +51,10 @@ class UserDataConfig(BaseModel):
         default=None, description="Path to user data template (null = use package default)"
     )
     ssh_keys: list[str] = Field(..., min_length=1, description="Paths to SSH public key files")
+    tailscale_enabled: bool = Field(
+        default=False,
+        description="Install Tailscale daemon during instance setup",
+    )
 
     @field_validator("ssh_keys")
     @classmethod

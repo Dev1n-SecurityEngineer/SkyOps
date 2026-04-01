@@ -11,6 +11,7 @@ def render_user_data(
     username: str,
     ssh_key_paths: list[str],
     template_path: str | None = None,
+    tailscale_enabled: bool = False,
 ) -> str:
     """Render the user data shell script for a new EC2 instance.
 
@@ -19,6 +20,7 @@ def render_user_data(
         ssh_key_paths: Paths to SSH public key files to inject.
         template_path: Path to a custom Jinja2 template, or None to use the
             package default.
+        tailscale_enabled: Whether to install the Tailscale daemon during setup.
 
     Returns:
         Rendered user data script as a string.
@@ -39,4 +41,8 @@ def render_user_data(
         autoescape=False,
     )
     template = env.get_template(tmpl_file.name)
-    return template.render(username=username, ssh_keys=ssh_keys)
+    return template.render(
+        username=username,
+        ssh_keys=ssh_keys,
+        tailscale_enabled=tailscale_enabled,
+    )

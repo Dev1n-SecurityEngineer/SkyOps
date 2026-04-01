@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv:*)",
+      "Bash(prek:*)",
+      "Bash(make:*)",
+      "Bash(shellcheck:*)",
+      "Bash(chmod +x:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": [
+      "Bash(aws ec2 terminate-instances:*)",
+      "Bash(aws ec2 stop-instances:*)",
+      "Bash(aws ec2 delete-*:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [[ \"$f\" == *.py ]] && uv run ruff format \"$f\" || true; } 2>/dev/null || true",
+            "statusMessage": "Formatting with ruff..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [[ \"$f\" == *.sh ]] && shellcheck --severity=error \"$f\" || true; } 2>/dev/null || true",
+            "statusMessage": "Checking shell script..."
+          }
+        ]
+      }
+    ]
+  }
+}

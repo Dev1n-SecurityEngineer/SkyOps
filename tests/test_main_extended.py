@@ -68,7 +68,10 @@ class TestCreateCommand:
     def test_creates_instance_with_name_arg(self, tmp_path: Path):
         api, cfg, username = _mock_triple()
         api.get_default_vpc.return_value = "vpc-abc"
-        api.get_subnets.return_value = [{"SubnetId": "subnet-abc"}]
+        api.get_subnets.return_value = [
+            {"SubnetId": "subnet-abc", "AvailabilityZone": "us-east-1a"}
+        ]
+        api.get_supported_azs.return_value = {"us-east-1a", "us-east-1b"}
         api.get_or_create_security_group.return_value = "sg-abc"
         api.launch_instance.return_value = {"InstanceId": "i-new123"}
         api.wait_instance_running.return_value = RUNNING_INSTANCE
@@ -86,7 +89,10 @@ class TestCreateCommand:
     def test_creates_with_ssh_config(self, tmp_path: Path):
         api, cfg, username = _mock_triple()
         api.get_default_vpc.return_value = "vpc-abc"
-        api.get_subnets.return_value = [{"SubnetId": "subnet-abc"}]
+        api.get_subnets.return_value = [
+            {"SubnetId": "subnet-abc", "AvailabilityZone": "us-east-1a"}
+        ]
+        api.get_supported_azs.return_value = {"us-east-1a", "us-east-1b"}
         api.get_or_create_security_group.return_value = "sg-abc"
         api.launch_instance.return_value = {"InstanceId": "i-new123"}
         api.wait_instance_running.return_value = RUNNING_INSTANCE
@@ -105,7 +111,10 @@ class TestCreateCommand:
     def test_create_prompts_for_name(self, tmp_path: Path):
         api, cfg, username = _mock_triple()
         api.get_default_vpc.return_value = "vpc-abc"
-        api.get_subnets.return_value = [{"SubnetId": "subnet-abc"}]
+        api.get_subnets.return_value = [
+            {"SubnetId": "subnet-abc", "AvailabilityZone": "us-east-1a"}
+        ]
+        api.get_supported_azs.return_value = {"us-east-1a", "us-east-1b"}
         api.get_or_create_security_group.return_value = "sg-abc"
         api.launch_instance.return_value = {"InstanceId": "i-new123"}
         api.wait_instance_running.return_value = RUNNING_INSTANCE
@@ -121,7 +130,10 @@ class TestCreateCommand:
     def test_create_with_custom_type_and_ami(self, tmp_path: Path):
         api, cfg, username = _mock_triple()
         api.get_default_vpc.return_value = "vpc-abc"
-        api.get_subnets.return_value = [{"SubnetId": "subnet-abc"}]
+        api.get_subnets.return_value = [
+            {"SubnetId": "subnet-abc", "AvailabilityZone": "us-east-1a"}
+        ]
+        api.get_supported_azs.return_value = {"us-east-1a", "us-east-1b"}
         api.get_or_create_security_group.return_value = "sg-abc"
         api.launch_instance.return_value = {"InstanceId": "i-new123"}
         api.wait_instance_running.return_value = RUNNING_INSTANCE
@@ -130,7 +142,9 @@ class TestCreateCommand:
             patch("skyops.main._load_api", return_value=(api, cfg, username)),
             patch("skyops.main.render_user_data", return_value="#!/bin/bash"),
         ):
-            result = runner.invoke(app, ["create", "inst", "--type", "t3.large", "--ami", "ami-custom"])
+            result = runner.invoke(
+                app, ["create", "inst", "--type", "t3.large", "--ami", "ami-custom"]
+            )
 
         assert result.exit_code == 0
         call_kwargs = api.launch_instance.call_args[1]
@@ -169,7 +183,10 @@ class TestCreateCommand:
     def test_create_api_error_on_launch(self):
         api, cfg, username = _mock_triple()
         api.get_default_vpc.return_value = "vpc-abc"
-        api.get_subnets.return_value = [{"SubnetId": "subnet-abc"}]
+        api.get_subnets.return_value = [
+            {"SubnetId": "subnet-abc", "AvailabilityZone": "us-east-1a"}
+        ]
+        api.get_supported_azs.return_value = {"us-east-1a", "us-east-1b"}
         api.get_or_create_security_group.return_value = "sg-abc"
         api.launch_instance.side_effect = EC2APIError("InsufficientCapacity")
 
@@ -213,13 +230,18 @@ class TestInitCommand:
         api_mock.import_key_pair.return_value = {"KeyPairId": "key-abc"}
         api_mock.get_default_vpc.return_value = "vpc-abc"
 
-        user_input = "\n".join([
-            "",              # profile (blank = default)
-            "us-east-1",    # region
-            "t3.medium",    # instance type
-            str(pub_key_file),  # ssh key
-            "",             # vpc confirm (accept default)
-        ]) + "\n"
+        user_input = (
+            "\n".join(
+                [
+                    "",  # profile (blank = default)
+                    "us-east-1",  # region
+                    "t3.medium",  # instance type
+                    str(pub_key_file),  # ssh key
+                    "",  # vpc confirm (accept default)
+                ]
+            )
+            + "\n"
+        )
 
         config_file = tmp_path / ".config" / "skyops" / "config.yaml"
         config_dir = tmp_path / ".config" / "skyops"
@@ -233,7 +255,11 @@ class TestInitCommand:
         ):
             result = runner.invoke(app, ["init"], input=user_input)
 
-        assert result.exit_code == 0 or "Configuration saved" in result.output or "Error" in result.output
+        assert (
+            result.exit_code == 0
+            or "Configuration saved" in result.output
+            or "Error" in result.output
+        )
 
     def test_init_aborts_on_no_overwrite(self):
         with patch("skyops.main.Config.exists", return_value=True):

@@ -1,4 +1,4 @@
-.PHONY: dev lint format test audit
+.PHONY: dev lint format test e2e audit
 
 dev:
 	uv sync --all-groups
@@ -11,6 +11,9 @@ format:
 
 test:
 	uv run pytest
+
+e2e:
+	./tests/e2e/test_lifecycle.sh
 
 audit:
 	uv run pip-audit

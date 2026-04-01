@@ -5,19 +5,38 @@ set -euo pipefail
 
 USERNAME="{{ username }}"
 
-# Create user if it doesn't exist
+# Update and upgrade system packages
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get upgrade -y -qq
+
+# Install packages
+apt-get install -y -qq \
+    apt-transport-https \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    gnupg \
+    htop \
+    jq \
+    neovim \
+    ufw \
+    unzip \
+    wget \
+    zsh
+
+# Create user with zsh as default shell
 if ! id "$USERNAME" &>/dev/null; then
-    useradd -m -s /bin/bash "$USERNAME"
+    useradd -m -s /usr/bin/zsh -c "$USERNAME" "$USERNAME"
 fi
 
-# Add user to sudo group
+# Passwordless sudo
 usermod -aG sudo "$USERNAME"
-
-# Allow passwordless sudo
 echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME"
 chmod 440 /etc/sudoers.d/"$USERNAME"
 
-# Set up SSH authorized keys
+# SSH authorized keys
 SSH_DIR="/home/$USERNAME/.ssh"
 mkdir -p "$SSH_DIR"
 chmod 700 "$SSH_DIR"
@@ -33,19 +52,63 @@ chown -R "$USERNAME:$USERNAME" "$SSH_DIR"
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i 's/^#\?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-
 systemctl restart ssh || systemctl restart sshd || true
 
-# Update package lists and install essentials
-export DEBIAN_FRONTEND=noninteractive
+# Write zshrc
+cat > "/home/$USERNAME/.zshrc" << 'ZSHRC'
+{% raw %}# Prompt: green on success, red after failure
+PROMPT='%F{%(?.green.red)}%n@%m%f:%F{blue}%~%f$ '
+
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE
+
+autoload -Uz compinit && compinit
+zstyle ':completion:*' menu select
+bindkey -e
+
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export EDITOR='nvim'
+export PATH="$PATH:$HOME/.local/bin"
+
+alias vim="nvim"
+{% endraw %}ZSHRC
+chsh -s /usr/bin/zsh "$USERNAME"
+chown "$USERNAME:$USERNAME" "/home/$USERNAME/.zshrc"
+chmod 644 "/home/$USERNAME/.zshrc"
+
+# Install Docker from official repo
+. /etc/os-release
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL "https://download.docker.com/linux/$ID/gpg" -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/$ID $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    > /etc/apt/sources.list.d/docker.list
 apt-get update -qq
 apt-get install -y -qq \
-    curl \
-    git \
-    htop \
-    jq \
-    unzip \
-    vim \
-    wget
+    containerd.io \
+    docker-buildx-plugin \
+    docker-ce \
+    docker-ce-cli \
+    docker-compose-plugin
+usermod -aG docker "$USERNAME"
+systemctl enable --now docker
 
+# UFW firewall
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow OpenSSH
+ufw limit ssh
+ufw --force enable
+
+{% if tailscale_enabled %}
+# Install Tailscale (daemon only — authenticate separately with `tailscale up`)
+curl -fsSL https://tailscale.com/install.sh | sh
+{% endif %}
+
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME"
 echo "skyops user data setup complete for user: $USERNAME"
+reboot

@@ -1,6 +1,5 @@
 """Main CLI application for skyops."""
 
-
 import typer
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
@@ -31,6 +30,7 @@ from skyops.ui import (
     display_regions,
 )
 from skyops.userdata import render_user_data
+from skyops.version_check import check_for_updates
 
 app = typer.Typer(
     name="skyops",
@@ -38,6 +38,12 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 err_console = Console(stderr=True)
+
+
+@app.callback()
+def _callback() -> None:
+    """Run before every command — checks for updates once per day."""
+    check_for_updates()
 
 
 # ------------------------------------------------------------------
@@ -107,8 +113,8 @@ def init() -> None:
 
     # AWS credentials
     console.print("\n[bold]AWS Configuration[/bold]")
-    profile = Prompt.ask("AWS profile (leave blank for default credential chain)", default="")
-    profile = profile.strip() or None
+    profile_input = Prompt.ask("AWS profile (leave blank for default credential chain)", default="")
+    profile: str | None = profile_input.strip() or None
 
     region = Prompt.ask("Default region", default="us-east-1")
 
@@ -256,7 +262,15 @@ def create(
             if not subnets:
                 _abort(f"No subnets found in VPC {vpc_id}.")
                 return
-            subnet_id = subnets[0]["SubnetId"]
+            supported_azs = api.get_supported_azs(resolved_type)
+            compatible = [s for s in subnets if s.get("AvailabilityZone") in supported_azs]
+            if not compatible:
+                _abort(
+                    f"No subnets in VPC {vpc_id} support instance type {resolved_type}. "
+                    f"Supported AZs: {', '.join(sorted(supported_azs))}"
+                )
+                return
+            subnet_id = compatible[0]["SubnetId"]
         except EC2APIError as e:
             _abort(str(e))
             return
@@ -276,6 +290,7 @@ def create(
             username=username,
             ssh_key_paths=cfg.config.userdata.ssh_keys,
             template_path=cfg.config.userdata.template_path,
+            tailscale_enabled=cfg.config.userdata.tailscale_enabled,
         )
     except Exception as e:
         _abort(f"Failed to render user data: {e}")
@@ -628,7 +643,9 @@ def wake(
             vpc_id = api.get_default_vpc()
         if vpc_id and not subnet_id:
             subnets = api.get_subnets(vpc_id)
-            subnet_id = subnets[0]["SubnetId"] if subnets else None
+            supported_azs = api.get_supported_azs(instance_type)
+            compatible = [s for s in subnets if s.get("AvailabilityZone") in supported_azs]
+            subnet_id = compatible[0]["SubnetId"] if compatible else None
         if vpc_id and not sg_id:
             sg_id = api.get_or_create_security_group(vpc_id)
 
@@ -636,6 +653,7 @@ def wake(
             username=username,
             ssh_key_paths=cfg.config.userdata.ssh_keys,
             template_path=cfg.config.userdata.template_path,
+            tailscale_enabled=cfg.config.userdata.tailscale_enabled,
         )
 
         instance = api.launch_instance(
