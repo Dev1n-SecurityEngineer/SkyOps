@@ -1,0 +1,133 @@
+[project]
+name = "skyops"
+version = "0.1.0"
+description = "A CLI tool for managing AWS EC2 instances with automated setup, SSH configuration, and lifecycle management."
+readme = "README.md"
+authors = [{ name = "Dev1n-SecurityEngineer" }]
+requires-python = ">=3.13"
+keywords = ["aws", "ec2", "cli", "devops", "ssh", "cloud"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "boto3>=1.38.0",
+    "pyyaml>=6.0.1",
+    "jinja2>=3.1.0",
+    "shellingham>=1.5.0",
+    "pydantic>=2.12.3",
+    "cryptography>=46.0.3",
+]
+
+[project.scripts]
+skyops = "skyops.main:app"
+
+[project.urls]
+Repository = "https://github.com/Dev1n-SecurityEngineer/SkyOps"
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
+default-groups = ["dev"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.8.0",
+    "ty>=0.0.1a7",
+    "boto3-stubs[ec2,sts]>=1.38.0",
+    { include-group = "audit" },
+]
+audit = ["pip-audit>=2.10.0"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "COM812",
+    "ISC001",
+    "E501",
+    "B904",
+    "TRY003",
+    "EM101",
+    "EM102",
+    "BLE001",
+    "ANN",
+    "FBT001",
+    "FBT002",
+    "FBT003",
+    "PLR2004",
+    "PLC0415",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "C901",
+    "S603",
+    "S607",
+    "PT011",
+    "TRY300",
+    "TRY301",
+    "RET504",
+    "RET505",
+    "RET506",
+    "PLW1510",
+    "ERA001",
+    "RUF059",
+    "S110",
+    "S108",
+    "S324",
+    "PTH123",
+    "PGH003",
+    "PIE807",
+    "S701",   # jinja2 autoescape=False intentional for shell script templates (not HTML)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",
+    "S105",
+    "S106",
+    "ARG",
+    "SLF001",
+    "PLR0913",
+    "PT022",
+]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = false
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.environment]
+python-version = "3.13"
+python = ".venv/bin/python"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=skyops --cov-fail-under=80"
