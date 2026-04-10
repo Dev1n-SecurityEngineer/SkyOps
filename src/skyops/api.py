@@ -2,6 +2,7 @@
 
 import re
 import time
+import urllib.request
 from typing import Any, cast
 
 import boto3
@@ -43,6 +44,14 @@ class EC2API:
             return cast("dict[str, Any]", self._sts.get_caller_identity())
         except (BotoCoreError, ClientError) as e:
             raise EC2APIError(f"Failed to get caller identity: {e}")
+
+    def get_caller_ip(self) -> str:
+        """Fetch the caller's current public IP from checkip.amazonaws.com."""
+        try:
+            with urllib.request.urlopen("https://checkip.amazonaws.com", timeout=5) as resp:
+                return resp.read().decode().strip()
+        except Exception as e:
+            raise EC2APIError(f"Failed to fetch caller public IP: {e}")
 
     def get_username(self) -> str:
         """Derive a Linux-safe username from the IAM ARN."""
@@ -396,13 +405,28 @@ class EC2API:
         except (BotoCoreError, ClientError) as e:
             raise EC2APIError(f"Failed to describe instance type offerings: {e}")
 
-    def get_or_create_security_group(self, vpc_id: str) -> str:
-        """Return existing skyops-default SG ID or create it.
+    def get_or_create_security_group(
+        self,
+        vpc_id: str,
+        caller_ip: str | None = None,
+        instance_name: str | None = None,
+    ) -> str:
+        """Return existing SG ID or create it.
 
-        The security group allows inbound SSH (port 22) from anywhere and
-        all outbound traffic.
+        When *caller_ip* is provided (with *instance_name*), creates a per-instance
+        security group named ``skyops-<instance_name>`` that restricts SSH ingress to
+        ``<caller_ip>/32`` instead of ``0.0.0.0/0``.  Otherwise uses/creates the shared
+        ``skyops-default`` group.
         """
-        sg_name = "skyops-default"
+        if caller_ip and instance_name:
+            sg_name = f"skyops-{instance_name}"
+            ssh_cidr = f"{caller_ip}/32"
+            description = f"skyops per-instance security group for {instance_name} - SSH restricted"
+        else:
+            sg_name = "skyops-default"
+            ssh_cidr = "0.0.0.0/0"
+            description = "skyops managed security group - SSH ingress"
+
         try:
             resp = self._ec2.describe_security_groups(
                 Filters=[
@@ -419,7 +443,7 @@ class EC2API:
         try:
             resp = self._ec2.create_security_group(
                 GroupName=sg_name,
-                Description="skyops managed security group - SSH ingress",
+                Description=description,
                 VpcId=vpc_id,
                 TagSpecifications=[
                     {
@@ -436,7 +460,7 @@ class EC2API:
                         "IpProtocol": "tcp",
                         "FromPort": 22,
                         "ToPort": 22,
-                        "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "SSH"}],
+                        "IpRanges": [{"CidrIp": ssh_cidr, "Description": "SSH"}],
                     }
                 ],
             )

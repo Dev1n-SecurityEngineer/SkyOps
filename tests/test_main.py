@@ -113,9 +113,7 @@ class TestListCommand:
         assert result.exit_code == 1
 
     def test_config_not_found(self):
-        with patch(
-            "skyops.main._load_api", side_effect=FileNotFoundError("Config not found")
-        ):
+        with patch("skyops.main._load_api", side_effect=FileNotFoundError("Config not found")):
             result = runner.invoke(app, ["list"])
         assert result.exit_code == 1
 
@@ -342,7 +340,12 @@ class TestWakeCommand:
 
 class TestListKeyPairsCommand:
     def test_shows_key_pairs(self):
-        kp = {"KeyName": "skyops-alice", "KeyPairId": "key-abc", "KeyFingerprint": "aa:bb", "CreateTime": "2024-01-01"}
+        kp = {
+            "KeyName": "skyops-alice",
+            "KeyPairId": "key-abc",
+            "KeyFingerprint": "aa:bb",
+            "CreateTime": "2024-01-01",
+        }
         api, cfg, username = _mock_api_triple(key_pairs=[kp])
         with patch("skyops.main._load_api", return_value=(api, cfg, username)):
             result = runner.invoke(app, ["list-key-pairs"])

@@ -1,5 +1,6 @@
 """Version checking for skyops."""
 
+import contextlib
 import json
 import subprocess
 import time
@@ -31,10 +32,8 @@ def _should_check() -> bool:
 def _record_check() -> None:
     path = _check_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    try:
+    with contextlib.suppress(OSError):
         path.write_text(json.dumps({"timestamp": time.time(), "version": __version__}))
-    except OSError:
-        pass
 
 
 def _latest_remote_commit() -> str | None:

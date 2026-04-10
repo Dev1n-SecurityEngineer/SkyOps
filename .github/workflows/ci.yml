@@ -39,7 +39,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Run type check
-        run: uv run ty check skyops/
+        run: uv run ty check src/skyops/
 
       - name: Run tests
         run: uv run pytest

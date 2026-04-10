@@ -17,9 +17,7 @@ def _make_api(region: str = "us-east-1") -> tuple[EC2API, MagicMock, MagicMock]:
         mock_session = MagicMock()
         mock_ec2 = MagicMock()
         mock_sts = MagicMock()
-        mock_session.client.side_effect = lambda svc, **_: (
-            mock_ec2 if svc == "ec2" else mock_sts
-        )
+        mock_session.client.side_effect = lambda svc, **_: mock_ec2 if svc == "ec2" else mock_sts
         mock_session_cls.return_value = mock_session
         api = EC2API(region=region)
         return api, mock_ec2, mock_sts
@@ -93,9 +91,7 @@ class TestWaitInstanceState:
     def test_returns_when_state_matches(self):
         api, mock_ec2, _ = _make_api()
         mock_ec2.describe_instances.return_value = {
-            "Reservations": [
-                {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopped"}}]}
-            ]
+            "Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopped"}}]}]
         }
         result = api.wait_instance_state("i-abc", "stopped")
         assert result["InstanceId"] == "i-abc"
@@ -103,8 +99,16 @@ class TestWaitInstanceState:
     def test_polls_until_state(self):
         api, mock_ec2, _ = _make_api()
         mock_ec2.describe_instances.side_effect = [
-            {"Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopping"}}]}]},
-            {"Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopped"}}]}]},
+            {
+                "Reservations": [
+                    {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopping"}}]}
+                ]
+            },
+            {
+                "Reservations": [
+                    {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "stopped"}}]}
+                ]
+            },
         ]
         with patch("skyops.api.time.sleep"):
             result = api.wait_instance_state("i-abc", "stopped")
@@ -123,9 +127,7 @@ class TestWaitInstanceState:
     def test_raises_on_timeout(self):
         api, mock_ec2, _ = _make_api()
         mock_ec2.describe_instances.return_value = {
-            "Reservations": [
-                {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}
-            ]
+            "Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}]
         }
         with (
             patch("skyops.api.time.sleep"),
@@ -162,8 +164,24 @@ class TestWaitInstanceRunning:
     def test_polls_until_ip_available(self):
         api, mock_ec2, _ = _make_api()
         mock_ec2.describe_instances.side_effect = [
-            {"Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}]},
-            {"Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "running"}, "PublicIpAddress": "5.5.5.5"}]}]},
+            {
+                "Reservations": [
+                    {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}
+                ]
+            },
+            {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-abc",
+                                "State": {"Name": "running"},
+                                "PublicIpAddress": "5.5.5.5",
+                            }
+                        ]
+                    }
+                ]
+            },
         ]
         with patch("skyops.api.time.sleep"):
             result = api.wait_instance_running("i-abc")
@@ -182,9 +200,7 @@ class TestWaitInstanceRunning:
     def test_raises_on_timeout(self):
         api, mock_ec2, _ = _make_api()
         mock_ec2.describe_instances.return_value = {
-            "Reservations": [
-                {"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}
-            ]
+            "Reservations": [{"Instances": [{"InstanceId": "i-abc", "State": {"Name": "pending"}}]}]
         }
         with (
             patch("skyops.api.time.sleep"),
@@ -297,7 +313,10 @@ class TestFindHibernateAMI:
                 {
                     "ImageId": "ami-snap",
                     "Name": "skyops-hibernate-myinst",
-                    "Tags": [{"Key": "Name", "Value": "myinst"}, {"Key": "skyops:owner", "Value": "alice"}],
+                    "Tags": [
+                        {"Key": "Name", "Value": "myinst"},
+                        {"Key": "skyops:owner", "Value": "alice"},
+                    ],
                 }
             ]
         }

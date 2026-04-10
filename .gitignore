@@ -207,3 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 .claude/settings.local.json
+
+# Generated pydoc output
+docs/*.html

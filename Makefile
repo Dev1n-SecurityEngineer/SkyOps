@@ -1,4 +1,4 @@
-.PHONY: dev lint format test e2e audit
+.PHONY: dev lint format test e2e audit docs
 
 dev:
 	uv sync --all-groups
@@ -14,6 +14,19 @@ test:
 
 e2e:
 	./tests/e2e/test_lifecycle.sh
+
+docs:
+	mkdir -p docs
+	cd docs && uv run python -m pydoc -w \
+	    skyops \
+	    skyops.api \
+	    skyops.config \
+	    skyops.lock \
+	    skyops.main \
+	    skyops.ssh_config \
+	    skyops.ui \
+	    skyops.userdata \
+	    skyops.version_check
 
 audit:
 	uv run pip-audit
