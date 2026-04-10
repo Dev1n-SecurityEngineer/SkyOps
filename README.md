@@ -66,14 +66,14 @@ Override defaults for a single run:
 uv run skyops create my-dev-box --type t3.large --region eu-west-1
 ```
 
-Restrict SSH ingress to your current public IP (instead of `0.0.0.0/0`):
+SSH ingress is restricted to your current public IP by default. To allow SSH from any IP:
 
 ```bash
-uv run skyops create my-dev-box --restrict-ssh
+uv run skyops create my-dev-box --no-restrict-ssh
 ```
 
-This creates a per-instance security group `skyops-my-dev-box` with SSH ingress locked to
-your IP at launch time. To make this the default, set `defaults.restrict_ssh: true` in
+The default behavior creates a per-instance security group `skyops-my-dev-box` with SSH ingress
+locked to your IP at launch time. To disable this globally, set `defaults.restrict_ssh: false` in
 `~/.config/skyops/config.yaml`.
 
 ### List instances
@@ -171,7 +171,7 @@ defaults:
   subnet_id: null
   security_group_id: null
   extra_tags: []
-  restrict_ssh: false   # true = lock SSH to your current public IP on create/wake
+  restrict_ssh: true    # false = allow SSH from any IP (0.0.0.0/0)
 
 userdata:
   template_path: null    # null = use built-in template

@@ -288,3 +288,37 @@ class TestCreateDefaultConfig:
                 key_pair_name="skyops-bob",
                 ssh_keys=[],
             )
+
+
+class TestRestrictSSHDefault:
+    def test_restrict_ssh_defaults_to_true(self):
+        cfg = DefaultsConfig(
+            region="us-east-1",
+            instance_type="t3.medium",
+            ami="ami-12345678",
+            key_pair_name="skyops-alice",
+        )
+        assert cfg.restrict_ssh is True
+
+    def test_create_default_config_restrict_ssh_true_by_default(self, pub_key_file: Path):
+        mgr = Config()
+        mgr.create_default_config(
+            region="us-east-1",
+            instance_type="t3.medium",
+            ami="ami-12345678",
+            key_pair_name="skyops-alice",
+            ssh_keys=[str(pub_key_file)],
+        )
+        assert mgr.config.defaults.restrict_ssh is True
+
+    def test_create_default_config_accepts_restrict_ssh_false(self, pub_key_file: Path):
+        mgr = Config()
+        mgr.create_default_config(
+            region="us-east-1",
+            instance_type="t3.medium",
+            ami="ami-12345678",
+            key_pair_name="skyops-alice",
+            ssh_keys=[str(pub_key_file)],
+            restrict_ssh=False,
+        )
+        assert mgr.config.defaults.restrict_ssh is False
