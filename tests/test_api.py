@@ -299,3 +299,16 @@ class TestGetOrCreateSG:
         cidr = ip_permissions[0]["IpRanges"][0]["CidrIp"]
         assert cidr == "1.2.3.4/32"
         assert "0.0.0.0/0" not in cidr
+
+    def test_restricted_sg_uses_128_prefix_for_ipv6(self):
+        """IPv6 caller IPs must use /128 not /32."""
+        api, mock_ec2, _ = _make_api()
+        mock_ec2.describe_security_groups.return_value = {"SecurityGroups": []}
+        mock_ec2.create_security_group.return_value = {"GroupId": "sg-v6"}
+        mock_ec2.authorize_security_group_ingress.return_value = {}
+
+        api.get_or_create_security_group("vpc-abc", caller_ip="2001:db8::1", instance_name="mybox")
+
+        call_args = mock_ec2.authorize_security_group_ingress.call_args
+        cidr = call_args.kwargs["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
+        assert cidr == "2001:db8::1/128"
