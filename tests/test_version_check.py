@@ -9,7 +9,6 @@ import pytest
 
 import skyops.version_check as vc
 
-
 # ---------------------------------------------------------------------------
 # _should_check / _record_check
 # ---------------------------------------------------------------------------
@@ -50,11 +49,13 @@ class TestRecordCheck:
 
     def test_silently_ignores_write_error(self, tmp_path: Path):
         path = tmp_path / "no_such_dir" / ".last_check"
-        with patch.object(vc, "_check_file", return_value=path):
-            # Parent doesn't exist — mkdir call inside _record_check creates it,
-            # so simulate an OSError on write instead.
-            with patch("builtins.open", side_effect=OSError("disk full")):
-                vc._record_check()  # must not raise
+        # Parent doesn't exist — mkdir call inside _record_check creates it,
+        # so simulate an OSError on write instead.
+        with (
+            patch.object(vc, "_check_file", return_value=path),
+            patch("builtins.open", side_effect=OSError("disk full")),
+        ):
+            vc._record_check()  # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -103,11 +104,13 @@ class TestLatestRemoteCommit:
 
     def test_returns_none_on_timeout(self):
         import subprocess
+
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="git", timeout=5)):
             assert vc._latest_remote_commit() is None
 
     def test_returns_none_on_subprocess_error(self):
         import subprocess
+
         with patch("subprocess.run", side_effect=subprocess.SubprocessError):
             assert vc._latest_remote_commit() is None
 
@@ -119,42 +122,52 @@ class TestLatestRemoteCommit:
 
 class TestCheckForUpdates:
     def test_skips_in_dev_mode(self):
-        with patch.object(vc, "__version__", "dev"):
-            with patch.object(vc, "_should_check") as mock_check:
-                vc.check_for_updates()
-                mock_check.assert_not_called()
+        with (
+            patch.object(vc, "__version__", "dev"),
+            patch.object(vc, "_should_check") as mock_check,
+        ):
+            vc.check_for_updates()
+            mock_check.assert_not_called()
 
     def test_skips_when_interval_not_elapsed(self):
-        with patch.object(vc, "__version__", "0.1.0+git.abc1234"):
-            with patch.object(vc, "_should_check", return_value=False):
-                with patch.object(vc, "_latest_remote_commit") as mock_remote:
-                    vc.check_for_updates()
-                    mock_remote.assert_not_called()
+        with (
+            patch.object(vc, "__version__", "0.1.0+git.abc1234"),
+            patch.object(vc, "_should_check", return_value=False),
+            patch.object(vc, "_latest_remote_commit") as mock_remote,
+        ):
+            vc.check_for_updates()
+            mock_remote.assert_not_called()
 
     def test_no_output_when_up_to_date(self, capsys: pytest.CaptureFixture):
-        with patch.object(vc, "__version__", "0.1.0+git.abc1234"):
-            with patch.object(vc, "_should_check", return_value=True):
-                with patch.object(vc, "_record_check"):
-                    with patch.object(vc, "_latest_remote_commit", return_value="abc1234"):
-                        vc.check_for_updates()
+        with (
+            patch.object(vc, "__version__", "0.1.0+git.abc1234"),
+            patch.object(vc, "_should_check", return_value=True),
+            patch.object(vc, "_record_check"),
+            patch.object(vc, "_latest_remote_commit", return_value="abc1234"),
+        ):
+            vc.check_for_updates()
         captured = capsys.readouterr()
         assert "Update" not in captured.out
 
     def test_prints_notice_when_outdated(self, capsys: pytest.CaptureFixture):
-        with patch.object(vc, "__version__", "0.1.0+git.aaa0000"):
-            with patch.object(vc, "_should_check", return_value=True):
-                with patch.object(vc, "_record_check"):
-                    with patch.object(vc, "_latest_remote_commit", return_value="bbb1111"):
-                        vc.check_for_updates()
+        with (
+            patch.object(vc, "__version__", "0.1.0+git.aaa0000"),
+            patch.object(vc, "_should_check", return_value=True),
+            patch.object(vc, "_record_check"),
+            patch.object(vc, "_latest_remote_commit", return_value="bbb1111"),
+        ):
+            vc.check_for_updates()
         captured = capsys.readouterr()
         assert "Update available" in captured.out
         assert "bbb1111" in captured.out
 
     def test_no_output_when_remote_unreachable(self, capsys: pytest.CaptureFixture):
-        with patch.object(vc, "__version__", "0.1.0+git.abc1234"):
-            with patch.object(vc, "_should_check", return_value=True):
-                with patch.object(vc, "_record_check"):
-                    with patch.object(vc, "_latest_remote_commit", return_value=None):
-                        vc.check_for_updates()
+        with (
+            patch.object(vc, "__version__", "0.1.0+git.abc1234"),
+            patch.object(vc, "_should_check", return_value=True),
+            patch.object(vc, "_record_check"),
+            patch.object(vc, "_latest_remote_commit", return_value=None),
+        ):
+            vc.check_for_updates()
         captured = capsys.readouterr()
         assert "Update" not in captured.out

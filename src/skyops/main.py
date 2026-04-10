@@ -285,7 +285,9 @@ def create(
         try:
             if effective_restrict:
                 caller_ip = api.get_caller_ip()
-                sg_id = api.get_or_create_security_group(vpc_id, caller_ip=caller_ip, instance_name=name)
+                sg_id = api.get_or_create_security_group(
+                    vpc_id, caller_ip=caller_ip, instance_name=name
+                )
                 console.print(f"  SSH ingress restricted to: [bold]{caller_ip}/32[/bold]")
             else:
                 sg_id = api.get_or_create_security_group(vpc_id)
@@ -662,7 +664,9 @@ def wake(
         if vpc_id and not sg_id:
             if effective_restrict:
                 caller_ip = api.get_caller_ip()
-                sg_id = api.get_or_create_security_group(vpc_id, caller_ip=caller_ip, instance_name=name)
+                sg_id = api.get_or_create_security_group(
+                    vpc_id, caller_ip=caller_ip, instance_name=name
+                )
                 console.print(f"  SSH ingress restricted to: [bold]{caller_ip}/32[/bold]")
             else:
                 sg_id = api.get_or_create_security_group(vpc_id)

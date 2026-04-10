@@ -25,6 +25,7 @@ class TestLockPath:
 class TestRequiresLock:
     def test_executes_function(self, tmp_path: Path):
         with patch.object(Path, "home", return_value=tmp_path):
+
             @requires_lock
             def my_func(instance_name: str) -> str:
                 return f"ok:{instance_name}"
@@ -34,6 +35,7 @@ class TestRequiresLock:
 
     def test_passes_args_and_kwargs(self, tmp_path: Path):
         with patch.object(Path, "home", return_value=tmp_path):
+
             @requires_lock
             def my_func(instance_name: str, value: int) -> int:
                 return value * 2
@@ -43,6 +45,7 @@ class TestRequiresLock:
 
     def test_cleans_up_lock_file(self, tmp_path: Path):
         with patch.object(Path, "home", return_value=tmp_path):
+
             @requires_lock
             def my_func(instance_name: str) -> None:
                 pass
@@ -53,6 +56,7 @@ class TestRequiresLock:
 
     def test_reraises_exception(self, tmp_path: Path):
         with patch.object(Path, "home", return_value=tmp_path):
+
             @requires_lock
             def bad_func(instance_name: str) -> None:
                 raise ValueError("oops")
@@ -67,9 +71,10 @@ class TestRequiresLock:
         results: list[str] = []
 
         with patch.object(Path, "home", return_value=tmp_path):
+
             @requires_lock
             def slow_func(instance_name: str) -> None:
-                holding.set()       # signal: lock is held
+                holding.set()  # signal: lock is held
                 release.wait(timeout=3)  # wait until test tells us to release
 
             def holder():
@@ -91,8 +96,8 @@ class TestRequiresLock:
             t2 = threading.Thread(target=contender)
             t1.start()
             t2.start()
-            t2.join(timeout=5)   # contender should fail quickly
-            release.set()        # let the holder finish
+            t2.join(timeout=5)  # contender should fail quickly
+            release.set()  # let the holder finish
             t1.join(timeout=5)
 
         assert "locked" in results
