@@ -97,6 +97,13 @@ apt-get install -y -qq \
 usermod -aG docker "$USERNAME"
 systemctl enable --now docker
 
+# Install Node.js 22 LTS from NodeSource
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y -qq nodejs
+
+# Install Claude Code CLI (run `claude` after SSH to configure your API key)
+npm install -g @anthropic-ai/claude-code
+
 # UFW firewall
 ufw default deny incoming
 ufw default allow outgoing
