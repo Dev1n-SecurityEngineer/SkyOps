@@ -42,6 +42,10 @@ class DefaultsConfig(BaseModel):
         default_factory=list,
         description="Extra tag keys/values as 'Key=Value' strings",
     )
+    restrict_ssh: bool = Field(
+        default=False,
+        description="Restrict SSH ingress to caller's public IP (instead of 0.0.0.0/0)",
+    )
 
 
 class UserDataConfig(BaseModel):

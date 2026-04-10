@@ -66,6 +66,16 @@ Override defaults for a single run:
 uv run skyops create my-dev-box --type t3.large --region eu-west-1
 ```
 
+Restrict SSH ingress to your current public IP (instead of `0.0.0.0/0`):
+
+```bash
+uv run skyops create my-dev-box --restrict-ssh
+```
+
+This creates a per-instance security group `skyops-my-dev-box` with SSH ingress locked to
+your IP at launch time. To make this the default, set `defaults.restrict_ssh: true` in
+`~/.config/skyops/config.yaml`.
+
 ### List instances
 
 ```bash
@@ -161,6 +171,7 @@ defaults:
   subnet_id: null
   security_group_id: null
   extra_tags: []
+  restrict_ssh: false   # true = lock SSH to your current public IP on create/wake
 
 userdata:
   template_path: null    # null = use built-in template
@@ -240,6 +251,37 @@ The group may be in a different VPC. Set `defaults.vpc_id` in your config to pin
 
 **Instance not found after rename**
 SkyOps finds instances by the `Name` tag. Confirm the rename with `skyops list`.
+
+## Dev Container
+
+The repository ships a `.devcontainer` configuration for VS Code Dev Containers and GitHub
+Codespaces. It provides a fully configured environment with Python 3.13, uv, AWS CLI, GitHub
+CLI, and SSH client tools pre-installed.
+
+### Launch in VS Code
+
+1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+2. Open the repository in VS Code.
+3. Click **Reopen in Container** when prompted (or run `Dev Containers: Reopen in Container`
+   from the command palette).
+4. The container builds and installs all dependencies automatically.
+
+### Launch in GitHub Codespaces
+
+Click **Code → Create codespace on `main`** in the GitHub UI. The devcontainer configuration
+is picked up automatically.
+
+### What's included
+
+| Tool | Purpose |
+| ---- | ------- |
+| Python 3.13 + uv | Runtime and package management |
+| AWS CLI v2 | Authenticate and interact with AWS directly |
+| GitHub CLI | PR and issue management |
+| SSH client | Connect to EC2 instances launched by SkyOps |
+| Claude Code | AI pair-programming in the terminal |
+
+After the container starts, configure AWS credentials and run `skyops init` as normal.
 
 ## Development
 

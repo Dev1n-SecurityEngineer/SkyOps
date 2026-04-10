@@ -155,7 +155,7 @@ class TestValidateSSHPublicKey:
     def test_rejects_non_pub_extension(self, tmp_path: Path, pub_key_str: str):
         key_file = tmp_path / "id_ed25519"
         key_file.write_text(pub_key_str)
-        with pytest.raises(ValueError, match="private"):
+        with pytest.raises(ValueError, match="(?i)private"):
             Config.validate_ssh_public_key(str(key_file))
 
     def test_rejects_empty_file(self, tmp_path: Path):

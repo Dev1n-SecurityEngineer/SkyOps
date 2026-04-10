@@ -216,6 +216,9 @@ def create(
     instance_type: str | None = typer.Option(None, "--type", "-t", help="EC2 instance type"),
     ami: str | None = typer.Option(None, "--ami", help="AMI ID"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+    restrict_ssh: bool = typer.Option(
+        False, "--restrict-ssh", help="Restrict SSH ingress to your current public IP"
+    ),
 ) -> None:
     """Launch a new EC2 instance with automated SSH configuration."""
     try:
@@ -275,11 +278,17 @@ def create(
             _abort(str(e))
             return
 
+    effective_restrict = restrict_ssh or cfg.config.defaults.restrict_ssh
     if not sg_id:
         if verbose:
             console.print("  Resolving security group...")
         try:
-            sg_id = api.get_or_create_security_group(vpc_id)
+            if effective_restrict:
+                caller_ip = api.get_caller_ip()
+                sg_id = api.get_or_create_security_group(vpc_id, caller_ip=caller_ip, instance_name=name)
+                console.print(f"  SSH ingress restricted to: [bold]{caller_ip}/32[/bold]")
+            else:
+                sg_id = api.get_or_create_security_group(vpc_id)
         except EC2APIError as e:
             _abort(str(e))
             return
@@ -624,6 +633,9 @@ def hibernate(
 def wake(
     name: str = typer.Argument(help="Instance name", autocompletion=complete_hibernate_name),
     keep_ami: bool = typer.Option(False, "--keep-ami", help="Keep the AMI after waking"),
+    restrict_ssh: bool = typer.Option(
+        False, "--restrict-ssh", help="Restrict SSH ingress to your current public IP"
+    ),
 ) -> None:
     """Wake a hibernated instance: restore from AMI snapshot."""
     try:
@@ -646,8 +658,14 @@ def wake(
             supported_azs = api.get_supported_azs(instance_type)
             compatible = [s for s in subnets if s.get("AvailabilityZone") in supported_azs]
             subnet_id = compatible[0]["SubnetId"] if compatible else None
+        effective_restrict = restrict_ssh or cfg.config.defaults.restrict_ssh
         if vpc_id and not sg_id:
-            sg_id = api.get_or_create_security_group(vpc_id)
+            if effective_restrict:
+                caller_ip = api.get_caller_ip()
+                sg_id = api.get_or_create_security_group(vpc_id, caller_ip=caller_ip, instance_name=name)
+                console.print(f"  SSH ingress restricted to: [bold]{caller_ip}/32[/bold]")
+            else:
+                sg_id = api.get_or_create_security_group(vpc_id)
 
         user_data = render_user_data(
             username=username,
