@@ -97,6 +97,17 @@ apt-get install -y -qq \
 usermod -aG docker "$USERNAME"
 systemctl enable --now docker
 
+# Install Node.js 22 LTS — GPG-verified NodeSource apt repo (matches Docker install pattern)
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
+    > /etc/apt/sources.list.d/nodesource.list
+apt-get update -qq
+apt-get install -y -qq nodejs
+
+# Install Claude Code CLI (run `claude` after SSH to configure your API key)
+npm install -g @anthropic-ai/claude-code
+
 # UFW firewall
 ufw default deny incoming
 ufw default allow outgoing

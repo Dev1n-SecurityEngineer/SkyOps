@@ -86,3 +86,17 @@ class TestRenderUserData:
             keys.append(str(kf))
         result = render_user_data(username="alice", ssh_key_paths=keys)
         assert result.count("ssh-ed25519") >= 3
+
+
+class TestClaudeCliBootstrap:
+    def test_nodejs_installed(self, pub_key_file: Path):
+        result = render_user_data(username="alice", ssh_key_paths=[str(pub_key_file)])
+        assert "nodesource" in result
+
+    def test_claude_cli_installed(self, pub_key_file: Path):
+        result = render_user_data(username="alice", ssh_key_paths=[str(pub_key_file)])
+        assert "@anthropic-ai/claude-code" in result
+
+    def test_no_api_key_in_output(self, pub_key_file: Path):
+        result = render_user_data(username="alice", ssh_key_paths=[str(pub_key_file)])
+        assert "ANTHROPIC_API_KEY" not in result

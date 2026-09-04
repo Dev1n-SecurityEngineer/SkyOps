@@ -1,5 +1,6 @@
 """AWS EC2 API wrapper using boto3."""
 
+import ipaddress
 import re
 import time
 import urllib.request
@@ -420,7 +421,9 @@ class EC2API:
         """
         if caller_ip and instance_name:
             sg_name = f"skyops-{instance_name}"
-            ssh_cidr = f"{caller_ip}/32"
+            addr = ipaddress.ip_address(caller_ip)
+            prefix = 128 if isinstance(addr, ipaddress.IPv6Address) else 32
+            ssh_cidr = f"{caller_ip}/{prefix}"
             description = f"skyops per-instance security group for {instance_name} - SSH restricted"
         else:
             sg_name = "skyops-default"

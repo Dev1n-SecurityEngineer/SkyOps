@@ -43,7 +43,7 @@ class DefaultsConfig(BaseModel):
         description="Extra tag keys/values as 'Key=Value' strings",
     )
     restrict_ssh: bool = Field(
-        default=False,
+        default=True,
         description="Restrict SSH ingress to caller's public IP (instead of 0.0.0.0/0)",
     )
 
@@ -215,6 +215,7 @@ class Config:
         subnet_id: str | None = None,
         security_group_id: str | None = None,
         extra_tags: list[str] | None = None,
+        restrict_ssh: bool = True,
     ) -> None:
         if not ssh_keys:
             raise ValueError("No SSH keys provided.")
@@ -229,6 +230,7 @@ class Config:
                 subnet_id=subnet_id,
                 security_group_id=security_group_id,
                 extra_tags=extra_tags or [],
+                restrict_ssh=restrict_ssh,
             ),
             userdata=UserDataConfig(ssh_keys=ssh_keys),
             ssh=SSHConfig(

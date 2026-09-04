@@ -273,3 +273,42 @@ class TestGetOrCreateSG:
         assert api.get_or_create_security_group("vpc-abc") == "sg-new"
         mock_ec2.create_security_group.assert_called_once()
         mock_ec2.authorize_security_group_ingress.assert_called_once()
+
+    def test_does_not_restrict_egress_on_new_sg(self):
+        """AWS default SG policy allows all outbound — SkyOps must not restrict it."""
+        api, mock_ec2, _ = _make_api()
+        mock_ec2.describe_security_groups.return_value = {"SecurityGroups": []}
+        mock_ec2.create_security_group.return_value = {"GroupId": "sg-new"}
+        mock_ec2.authorize_security_group_ingress.return_value = {}
+
+        api.get_or_create_security_group("vpc-abc")
+
+        mock_ec2.authorize_security_group_egress.assert_not_called()
+
+    def test_restricted_sg_only_allows_caller_ip(self):
+        """--restrict-ssh creates a per-instance SG with /32 CIDR, not 0.0.0.0/0."""
+        api, mock_ec2, _ = _make_api()
+        mock_ec2.describe_security_groups.return_value = {"SecurityGroups": []}
+        mock_ec2.create_security_group.return_value = {"GroupId": "sg-restricted"}
+        mock_ec2.authorize_security_group_ingress.return_value = {}
+
+        api.get_or_create_security_group("vpc-abc", caller_ip="1.2.3.4", instance_name="mybox")
+
+        call_args = mock_ec2.authorize_security_group_ingress.call_args
+        ip_permissions = call_args.kwargs["IpPermissions"]
+        cidr = ip_permissions[0]["IpRanges"][0]["CidrIp"]
+        assert cidr == "1.2.3.4/32"
+        assert "0.0.0.0/0" not in cidr
+
+    def test_restricted_sg_uses_128_prefix_for_ipv6(self):
+        """IPv6 caller IPs must use /128 not /32."""
+        api, mock_ec2, _ = _make_api()
+        mock_ec2.describe_security_groups.return_value = {"SecurityGroups": []}
+        mock_ec2.create_security_group.return_value = {"GroupId": "sg-v6"}
+        mock_ec2.authorize_security_group_ingress.return_value = {}
+
+        api.get_or_create_security_group("vpc-abc", caller_ip="2001:db8::1", instance_name="mybox")
+
+        call_args = mock_ec2.authorize_security_group_ingress.call_args
+        cidr = call_args.kwargs["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
+        assert cidr == "2001:db8::1/128"
