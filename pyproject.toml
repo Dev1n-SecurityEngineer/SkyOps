@@ -84,6 +84,7 @@ ignore = [
     "PLR0912",
     "PLR0913",
     "PLR0915",
+    "PLR0917",
     "C901",
     "S603",
     "S607",
@@ -103,6 +104,7 @@ ignore = [
     "PGH003",
     "PIE807",
     "S701",   # jinja2 autoescape=False intentional for shell script templates (not HTML)
+    "CPY001", # no per-file copyright header convention in this project
 ]
 
 [tool.ruff.lint.per-file-ignores]

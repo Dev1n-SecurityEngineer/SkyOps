@@ -122,7 +122,7 @@ class EC2API:
             instances = []
             for reservation in resp.get("Reservations", []):
                 instances.extend(reservation.get("Instances", []))
-            return instances
+            return cast("list[dict[str, Any]]", instances)
         except (BotoCoreError, ClientError) as e:
             raise EC2APIError(f"Failed to list instances: {e}")
 
@@ -251,10 +251,13 @@ class EC2API:
                 InstanceId=instance_id,
                 Name=name,
                 NoReboot=False,
-                TagSpecifications=[
-                    {"ResourceType": "image", "Tags": tags},
-                    {"ResourceType": "snapshot", "Tags": tags},
-                ],
+                TagSpecifications=cast(
+                    "Any",
+                    [
+                        {"ResourceType": "image", "Tags": tags},
+                        {"ResourceType": "snapshot", "Tags": tags},
+                    ],
+                ),
             )
             ami_id = resp["ImageId"]
         except (BotoCoreError, ClientError) as e:
@@ -516,7 +519,7 @@ class EC2API:
             "r6i.large",
         ]
         try:
-            resp = self._ec2.describe_instance_types(InstanceTypes=common_types)
+            resp = self._ec2.describe_instance_types(InstanceTypes=cast("Any", common_types))
             return [cast("dict[str, Any]", it) for it in resp.get("InstanceTypes", [])]
         except (BotoCoreError, ClientError) as e:
             raise EC2APIError(f"Failed to describe instance types: {e}")
